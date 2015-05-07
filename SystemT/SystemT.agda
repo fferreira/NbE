@@ -96,14 +96,14 @@ module normal-forms where
   ⟦ ⊡ ⟧ctx = ⊤
   ⟦ Γ , T ⟧ctx = ⟦ Γ ⟧ctx × ⟦ T ⟧t
 
-  -- ⟦_⟧v : ∀{Γ T} (v : var tp Γ T)(ρ : ⟦ Γ ⟧ctx) -> ⟦ T ⟧t
-  -- ⟦_⟧v top (ρ , a) = a
-  -- ⟦_⟧v (pop v) (ρ , a) = ⟦ v ⟧v ρ
+  ⟦_⟧v : ∀{Γ T} (v : var tp Γ T)(ρ : ⟦ Γ ⟧ctx) -> ⟦ T ⟧t
+  ⟦_⟧v top (ρ , a) = a
+  ⟦_⟧v (pop v) (ρ , a) = ⟦ v ⟧v ρ
 
   -- ⟦_⟧c : ∀{T} -> const T -> ⟦ T ⟧t
-  -- ⟦ zero ⟧c = ?
-  -- ⟦_⟧c succ n = suc n
-  -- ⟦_⟧c rec = recℕ 
+  -- ⟦ zero ⟧c = λ Γ → zero
+  -- ⟦_⟧c succ n = λ Γ → {!!}
+  -- ⟦_⟧c rec = {!!}
 
   -- ⟦_⟧ : ∀{Γ T} -> (e : exp Γ T)(ρ : ⟦ Γ ⟧ctx) -> ⟦ T ⟧t 
   -- ⟦_⟧ (c con) ρ = ⟦ con ⟧c
@@ -112,10 +112,14 @@ module normal-forms where
   -- ⟦_⟧ (e · e₁) ρ = ⟦ e ⟧ ρ (⟦ e₁ ⟧ ρ)
 
 
-  mutual 
+  mutual
+    lemma : ∀ {Γ} → ne Γ nat ⊎ ⊥ → nf Γ nat
+    lemma (inj₁ e) = neu e
+    lemma (inj₂ ())
+  
     reflect : ∀ T -> Ne T -> ⟦ T ⟧t
-    reflect nat x Γ = {!!}
-    reflect (S ⟼ T) u a = {!!}
+    reflect nat u Γ = lemma (u Γ)
+    reflect (S ⟼ T) u a = let v = reify S a in reflect T (λ Δ → {!(u Γ) (v Γ)!})
 
     reify : ∀ T -> ⟦ T ⟧t  -> Nf T
     reify nat v = v
@@ -123,4 +127,4 @@ module normal-forms where
 
     refΓ : ∀ Γ -> ⟦ Γ ⟧ctx
     refΓ ⊡ = tt
-    refΓ (Γ , T) = (refΓ Γ) , ?
+    refΓ (Γ , T) = (refΓ Γ) , {!!}
