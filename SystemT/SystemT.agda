@@ -88,12 +88,6 @@ module normal-forms where
     ⟦_⟧c succ n = succ (n)
     ⟦_⟧c {(T ⟼ (nat ⟼ .T ⟼ .T) ⟼ nat ⟼ .T)} rec = rec-nat T
 
-    -- maybe-rec : ∀ {T Γ} →
-    --   nf Γ T → nf Γ (nat ⟼ T ⟼ T) → Maybe (ne Γ nat) → Maybe (ne Γ T)
-    -- maybe-rec vz vs n = Data.Maybe.map {!!} {!!}
-    -- maybe-rec vz vs (inj₁ e) = inj₁ (rec vz vs e)
-    -- maybe-rec vz vs (inj₂ tt) = inj₂ tt
-
     -- Here I provide a recursion principle on Nat.
     rec-nat : (T : tp) (ez : ⟦ T ⟧t)
               (es : Nat -> ⟦ T ⟧t -> ⟦ T ⟧t)(n : Nat) -> ⟦ T ⟧t
