@@ -7,10 +7,6 @@ data tp : Set where
   nat : tp
   _⟼_ : tp -> tp -> tp
 
--- data var : Set where
---   top : var
---   pop : var -> var
-
 data exp : Set where
   ▹ : ℕ -> exp -- De Bruijn indeces
   ƛ : exp -> exp
@@ -19,7 +15,7 @@ data exp : Set where
   -- succ : exp -> exp
   -- rec : exp -> exp -> exp -> exp
 
--- Sematics
+-- sematics
 
 mutual 
   data D : Set where
@@ -28,14 +24,14 @@ mutual
 
   data Dne : Set where
     _·_ : Dne -> D -> Dne
-    ▹ : (x k : ℕ) -> Dne
+    ▹ : (x k : ℕ) -> Dne -- De Bruijn levels
 
   data env : Set where
     nil : env
     _,_ : env -> D -> env
 
+-- environment lookup
 
--- lookup
 data _[_]=_ : ℕ -> env -> D -> Set where
   l-top : ∀{ρ a} -> zero [ ρ , a ]= a
   l-pop : ∀{v ρ a b} ->  v [ ρ ]= a -> (suc v) [ ρ , b ]= a
@@ -44,7 +40,7 @@ data _[_]=_ : ℕ -> env -> D -> Set where
 
 mutual
   data _·_↘_ : D -> D -> D -> Set where
-    app-lam : ∀{t ρ a b} -> ⟦ t ⟧ (ρ , a) ↘ b -> ƛ t ρ · a ↘ a
+    app-lam : ∀{t ρ a b} -> ⟦ t ⟧ (ρ , a) ↘ b -> ƛ t ρ · a ↘ b
     app-neu : ∀{e d} -> (ne e) · d ↘ ne (e · d)
 
   data ⟦_⟧_↘_ : exp -> env -> D -> Set where
@@ -53,10 +49,8 @@ mutual
     e-app : ∀{r s ρ a f b} ->
       ⟦ r ⟧ ρ ↘ f -> ⟦ s ⟧ ρ ↘ a ->  f · a ↘ b ->
       ⟦ r · s ⟧ ρ ↘ b
-
   
 -- read-back relations
-
 
 mutual
   data Rnf (n : ℕ) : D -> exp -> Set where
@@ -72,4 +66,4 @@ mutual
       Rne n (e · d) (u · v)
     r-var : ∀{x k} ->
       
-      Rne n (▹ x k) (▹ (n ∸ (k + 1))) -- this is wrong
+      Rne n (▹ x k) (▹ (n ∸ (k + 1))) -- this is probably wrong
