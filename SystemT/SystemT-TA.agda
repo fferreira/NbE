@@ -57,8 +57,8 @@ mutual
 -- environment lookup
 
 data _[_]=_ : ℕ -> env -> D -> Set where
-  l-top : ∀{ρ a} -> zero [ ρ , a ]= a
-  l-pop : ∀{v ρ a b} ->  v [ ρ ]= a -> (suc v) [ ρ , b ]= a
+  le-top : ∀{ρ a} -> zero [ ρ , a ]= a
+  le-pop : ∀{v ρ a b} ->  v [ ρ ]= a -> (suc v) [ ρ , b ]= a
 
 -- evaluation relation
 
@@ -161,7 +161,53 @@ data Nat : D -> Set where
 
 -- semantic typing
 
-⟦_⟧t : tp -> Set
-⟦ nat ⟧t = Nat {!!}
-⟦ S ⟼ T ⟧t = ⟦ S ⟧t → ⟦ T ⟧t
+_⇒_ : (D -> Set) -> (D -> Set) -> (D -> Set)
+(A ⇒ B) f = ∀ a -> a ∈ A -> ∃ (λ b -> b ∈ B × f · a ↘ b) 
 
+⟦_⟧t : tp -> (D -> Set)
+⟦ nat ⟧t = Nat
+⟦ S ⟼ T ⟧t = ⟦ S ⟧t ⇒ ⟦ T ⟧t
+
+data ctx : Set where
+  ∅ : ctx
+  _::_ : ctx -> tp -> ctx
+
+data _[_]c=_ : ℕ -> ctx -> tp -> Set where
+  lc-top : ∀{Γ T} -> zero [ Γ :: T ]c= T
+  lc-pop : ∀{Γ T S v} -> v [ Γ ]c= T -> (suc v) [ Γ :: S ]c= T
+
+data ⟦_⟧ctx : ctx -> env -> Set where
+  ⟦∅⟧ctx : ∀{ρ} -> ρ ∈ ⟦ ∅ ⟧ctx -- why not nil ∈ ⟦ ∅ ⟧ctx ?
+  ⟦::⟧ctx : ∀{ρ Γ d S} -> ρ ∈ ⟦ Γ ⟧ctx -> d ∈ ⟦ S ⟧t -> (ρ , d) ∈ ⟦ Γ :: S ⟧ctx
+
+
+⟦_⟧_∈_ : exp -> env -> (D -> Set) -> Set
+⟦ t ⟧ ρ ∈ B = ∃ (λ b → b ∈ B × ⟦ t ⟧ ρ ↘ b)
+
+_⊨_∶_ : ctx -> exp -> tp -> Set
+Γ ⊨ t ∶ T = ∀ ρ → ρ ∈ ⟦ Γ ⟧ctx → ⟦ t ⟧ ρ ∈ ⟦ T ⟧t
+
+-- From the semantic typing we can prove these lemmas the follow the
+-- structure of the typing rules, so these will help in stablishing
+-- the soundness of the semantics with regard to the typing rules
+
+lemma-zero : ∀{Γ} -> Γ ⊨ zero ∶ nat
+lemma-zero Γ ρ = zero , zero , e-zero
+
+lemma-succ : ∀{Γ t} -> Γ ⊨ t ∶ nat -> Γ ⊨ suc t ∶ nat
+lemma-succ d ρ dρ with d ρ dρ 
+lemma-succ d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
+
+lemma-var : ∀{Γ v T} -> v [ Γ ]c= T -> Γ ⊨ ▹ v ∶ T
+lemma-var d ρ dρ = {!!}
+
+lemma-lam : ∀{ Γ t S T} -> (Γ :: S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⟼ T)
+lemma-lam d ρ dρ = {!!} 
+
+lemma-app : ∀{Γ r s S T} -> Γ ⊨ r ∶ (S ⟼ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
+lemma-app d1 d2 ρ dρ = {!!}
+
+lemma-rec : ∀{Γ tz ts tn T} -> 
+            Γ ⊨ tz ∶ T -> Γ ⊨ ts ∶ (nat ⟼ (T ⟼ T)) -> Γ ⊨ tn ∶ nat ->
+            Γ ⊨ rec tz ts tn ∶ T
+lemma-rec d1 d2 d3 ρ dρ = {!!}
