@@ -194,20 +194,39 @@ _⊨_∶_ : ctx -> exp -> tp -> Set
 lemma-zero : ∀{Γ} -> Γ ⊨ zero ∶ nat
 lemma-zero Γ ρ = zero , zero , e-zero
 
-lemma-succ : ∀{Γ t} -> Γ ⊨ t ∶ nat -> Γ ⊨ suc t ∶ nat
-lemma-succ d ρ dρ with d ρ dρ 
-lemma-succ d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
+lemma-suc : ∀{Γ t} -> Γ ⊨ t ∶ nat -> Γ ⊨ suc t ∶ nat
+lemma-suc d ρ dρ with d ρ dρ 
+lemma-suc d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
 
 lemma-var : ∀{Γ v T} -> v [ Γ ]c= T -> Γ ⊨ ▹ v ∶ T
 lemma-var d ρ dρ = {!!}
 
-lemma-lam : ∀{ Γ t S T} -> (Γ :: S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⟼ T)
-lemma-lam d ρ dρ = {!!} 
+lemma-lam : ∀{Γ t} S T -> (Γ :: S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⟼ T)
+lemma-lam S T d ρ dρ = {!!} 
 
-lemma-app : ∀{Γ r s S T} -> Γ ⊨ r ∶ (S ⟼ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
-lemma-app d1 d2 ρ dρ = {!!}
+lemma-app : ∀{Γ r s} S T -> Γ ⊨ r ∶ (S ⟼ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
+lemma-app S T d1 d2 ρ dρ = {!!}
 
-lemma-rec : ∀{Γ tz ts tn T} -> 
+lemma-rec : ∀{Γ tz ts tn} T -> 
             Γ ⊨ tz ∶ T -> Γ ⊨ ts ∶ (nat ⟼ (T ⟼ T)) -> Γ ⊨ tn ∶ nat ->
             Γ ⊨ rec tz ts tn ∶ T
-lemma-rec d1 d2 d3 ρ dρ = {!!}
+lemma-rec T d1 d2 d3 ρ dρ = {!!}
+
+
+data _⊢_∶_ (Γ : ctx) : exp -> tp -> Set where
+  t-zero : Γ ⊢ zero ∶ nat
+  t-suc  : ∀{t} -> Γ ⊢ t ∶ nat -> Γ ⊢ suc t ∶ nat
+  t-var  : ∀{v T} -> v [ Γ ]c= T -> Γ ⊢ ▹ v ∶ T
+  t-lam  : ∀{S T t} -> (Γ :: S) ⊢ t ∶ T -> Γ ⊢ ƛ t ∶ (S ⟼ T)
+  t-app  : ∀{S T r s} -> Γ ⊢ r ∶ (S ⟼ T) -> Γ ⊢ s ∶ S -> Γ ⊢ r · s ∶ T
+  t-rec  : ∀{T tz ts tn} -> 
+           Γ ⊢ tz ∶ T -> Γ ⊢ ts ∶ (nat ⟼ (T ⟼ T)) -> Γ ⊢ tn ∶ nat ->
+           Γ ⊢ rec tz ts tn ∶ T
+
+soundness : ∀{Γ t T} -> Γ ⊢ t ∶ T -> Γ ⊨ t ∶ T
+soundness t-zero ρ dρ = lemma-zero ρ dρ
+soundness (t-suc d) ρ dρ = lemma-suc (soundness d) ρ dρ
+soundness (t-var d) ρ dρ = lemma-var d ρ dρ
+soundness (t-lam {S} {T} d) ρ dρ = lemma-lam S T (soundness d) ρ dρ
+soundness (t-app {S} {T} d d₁) ρ dρ = lemma-app S T (soundness d) (soundness d₁) ρ dρ
+soundness (t-rec {T} d d₁ d₂) ρ dρ = lemma-rec T (soundness d) (soundness d₁) (soundness d₂) ρ dρ
