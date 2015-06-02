@@ -56,9 +56,9 @@ mutual
 
 -- environment lookup
 
-data _[_]=_ : ℕ -> env -> D -> Set where
-  le-top : ∀{ρ a} -> zero [ ρ , a ]= a
-  le-pop : ∀{v ρ a b} ->  v [ ρ ]= a -> (suc v) [ ρ , b ]= a
+data _∋^_↘_ : env -> ℕ -> D -> Set where
+  le-top : ∀{ρ a} -> (ρ , a) ∋^ zero ↘ a
+  le-pop : ∀{v ρ a b} ->  ρ ∋^ v ↘ a ->  (ρ , b) ∋^ (suc v) ↘ a
 
 -- evaluation relation
 
@@ -69,7 +69,7 @@ mutual
 
   data ⟦_⟧_↘_ : exp -> env -> D -> Set where
     e-var : ∀{v ρ i} -> 
-      v [ ρ ]= i -> ⟦ ▹ v ⟧ ρ ↘ i
+      ρ ∋^ v ↘ i -> ⟦ ▹ v ⟧ ρ ↘ i
     e-lam : ∀{t ρ} -> 
       ⟦ ƛ t ⟧ ρ ↘ ƛ t ρ
     e-app : ∀{r s ρ a f b} ->
@@ -172,61 +172,99 @@ data ctx : Set where
   ∅ : ctx
   _::_ : ctx -> tp -> ctx
 
-data _[_]c=_ : ℕ -> ctx -> tp -> Set where
-  lc-top : ∀{Γ T} -> zero [ Γ :: T ]c= T
-  lc-pop : ∀{Γ T S v} -> v [ Γ ]c= T -> (suc v) [ Γ :: S ]c= T
+data _∋_∶_ : ctx -> ℕ -> tp -> Set where
+  lc-top : ∀{Γ T} -> (Γ :: T) ∋ zero ∶ T
+  lc-pop : ∀{Γ T S v} -> Γ ∋ v ∶ T ->  (Γ :: S) ∋ (suc v) ∶ T
 
-data ⟦_⟧ctx : ctx -> env -> Set where
-  ⟦∅⟧ctx : ∀{ρ} -> ρ ∈ ⟦ ∅ ⟧ctx -- why not nil ∈ ⟦ ∅ ⟧ctx ?
-  ⟦::⟧ctx : ∀{ρ Γ d S} -> ρ ∈ ⟦ Γ ⟧ctx -> d ∈ ⟦ S ⟧t -> (ρ , d) ∈ ⟦ Γ :: S ⟧ctx
+data ∅' : env -> Set where
+  nil : ∀ {ρ} -> ρ ∈ ∅' -- why not empty env ∈ ∅'
 
+data _∷̂_  (Γ : env -> Set) (S : D -> Set) : (env -> Set) where
+  cons : ∀{ρ d} -> ρ ∈ Γ -> d ∈ S -> (ρ , d) ∈(Γ ∷̂ S)
 
-⟦_⟧_∈_ : exp -> env -> (D -> Set) -> Set
+-- Semantic contexts (just a shortcut for predicate over environments)
+Ctx : Set₁
+Ctx = env -> Set
+
+-- Semantic types
+Tp : Set₁
+Tp = D -> Set
+
+⟦_⟧ctx : ctx -> Ctx
+⟦ ∅ ⟧ctx = ∅'
+⟦ Γ :: S ⟧ctx = ⟦ Γ ⟧ctx ∷̂ ⟦ S ⟧t
+
+⟦_⟧_∈_ : exp -> env -> Tp -> Set
 ⟦ t ⟧ ρ ∈ B = ∃ (λ b → b ∈ B × ⟦ t ⟧ ρ ↘ b)
 
-_⊨_∶_ : ctx -> exp -> tp -> Set
-Γ ⊨ t ∶ T = ∀ ρ → ρ ∈ ⟦ Γ ⟧ctx → ⟦ t ⟧ ρ ∈ ⟦ T ⟧t
+⟦_⟧_∈v_ : ℕ -> env -> Tp -> Set
+⟦ v ⟧ ρ ∈v B = ∃ (λ b → b ∈ B × ρ ∋^ v ↘ b)
+
+
+-- In Abel's habilitation thesis the semantic typing is presentd as
+-- relating syntactic contexts, expressions and syntactic types. Here,
+-- as per Andrew's suggestion, we have that semantic types relates
+-- semantic contexts (aka predicates on environments), expressions and
+-- semantic types (aka predicates on types).
+
+_⊨_∶_ : Ctx -> exp -> Tp -> Set
+Γ ⊨ t ∶ T = ∀ ρ → ρ ∈ Γ → ⟦ t ⟧ ρ ∈ T
+
+_∋^_∶_ : Ctx -> ℕ -> Tp -> Set
+Γ ∋^ v ∶ T = ∀ ρ → ρ ∈ Γ → ⟦ v ⟧ ρ ∈v T
 
 -- From the semantic typing we can prove these lemmas the follow the
 -- structure of the typing rules, so these will help in stablishing
 -- the soundness of the semantics with regard to the typing rules
 
-lemma-zero : ∀{Γ} -> Γ ⊨ zero ∶ nat
-lemma-zero Γ ρ = zero , zero , e-zero
+s-zero : ∀{Γ} -> Γ ⊨ zero ∶ Nat
+s-zero Γ ρ = zero , zero , e-zero
 
-lemma-suc : ∀{Γ t} -> Γ ⊨ t ∶ nat -> Γ ⊨ suc t ∶ nat
-lemma-suc d ρ dρ with d ρ dρ 
-lemma-suc d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
+s-suc : ∀{Γ t} -> Γ ⊨ t ∶ Nat -> Γ ⊨ suc t ∶ Nat
+s-suc d ρ dρ with d ρ dρ 
+s-suc d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
 
-lemma-var : ∀{Γ v T} -> v [ Γ ]c= T -> Γ ⊨ ▹ v ∶ T
-lemma-var d ρ dρ = {!!}
+s-lam : ∀{Γ t S T} -> (Γ ∷̂ S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⇒ T)
+s-lam d ρ dρ = {!!}
 
-lemma-lam : ∀{Γ t} S T -> (Γ :: S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⟼ T)
-lemma-lam S T d ρ dρ = {!!} 
+s-var : ∀ {Γ v T} -> Γ ∋^ v ∶ T -> Γ ⊨ ▹ v ∶ T
+s-var d ρ dρ with d ρ dρ
+... | b , B , dv = b , B , e-var dv 
 
-lemma-app : ∀{Γ r s} S T -> Γ ⊨ r ∶ (S ⟼ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
-lemma-app S T d1 d2 ρ dρ = {!!}
+s-app : ∀{Γ r s S T} -> Γ ⊨ r ∶ (S ⇒ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
+s-app d1 d2 ρ dρ = {!!}
 
-lemma-rec : ∀{Γ tz ts tn} T -> 
-            Γ ⊨ tz ∶ T -> Γ ⊨ ts ∶ (nat ⟼ (T ⟼ T)) -> Γ ⊨ tn ∶ nat ->
+s-rec : ∀{Γ tz ts tn T} -> 
+            Γ ⊨ tz ∶ T -> Γ ⊨ ts ∶ (Nat ⇒ (T ⇒ T)) -> Γ ⊨ tn ∶ Nat ->
             Γ ⊨ rec tz ts tn ∶ T
-lemma-rec T d1 d2 d3 ρ dρ = {!!}
+s-rec d1 d2 d3 ρ dρ = {!!}
 
+s-top : ∀{Γ T} -> (Γ ∷̂ T) ∋^ zero ∶ T
+s-top ._ (cons _ t) = , (t , le-top)
+
+s-pop : ∀{Γ T S v} -> Γ ∋^ v ∶ T ->  (Γ ∷̂ S) ∋^ (suc v) ∶ T
+s-pop dv ._ (cons x x₁) with dv _ x
+... | v , V , ddv = v , (V , le-pop ddv)
 
 data _⊢_∶_ (Γ : ctx) : exp -> tp -> Set where
   t-zero : Γ ⊢ zero ∶ nat
   t-suc  : ∀{t} -> Γ ⊢ t ∶ nat -> Γ ⊢ suc t ∶ nat
-  t-var  : ∀{v T} -> v [ Γ ]c= T -> Γ ⊢ ▹ v ∶ T
+  t-var  : ∀{v T} -> Γ ∋ v ∶ T -> Γ ⊢ ▹ v ∶ T
   t-lam  : ∀{S T t} -> (Γ :: S) ⊢ t ∶ T -> Γ ⊢ ƛ t ∶ (S ⟼ T)
   t-app  : ∀{S T r s} -> Γ ⊢ r ∶ (S ⟼ T) -> Γ ⊢ s ∶ S -> Γ ⊢ r · s ∶ T
   t-rec  : ∀{T tz ts tn} -> 
            Γ ⊢ tz ∶ T -> Γ ⊢ ts ∶ (nat ⟼ (T ⟼ T)) -> Γ ⊢ tn ∶ nat ->
            Γ ⊢ rec tz ts tn ∶ T
 
-soundness : ∀{Γ t T} -> Γ ⊢ t ∶ T -> Γ ⊨ t ∶ T
-soundness t-zero ρ dρ = lemma-zero ρ dρ
-soundness (t-suc d) ρ dρ = lemma-suc (soundness d) ρ dρ
-soundness (t-var d) ρ dρ = lemma-var d ρ dρ
-soundness (t-lam {S} {T} d) ρ dρ = lemma-lam S T (soundness d) ρ dρ
-soundness (t-app {S} {T} d d₁) ρ dρ = lemma-app S T (soundness d) (soundness d₁) ρ dρ
-soundness (t-rec {T} d d₁ d₂) ρ dρ = lemma-rec T (soundness d) (soundness d₁) (soundness d₂) ρ dρ
+var-soundness : ∀{Γ v T} -> Γ ∋ v ∶ T -> (⟦ Γ ⟧ctx) ∋^ v ∶ ⟦ T ⟧t
+var-soundness lc-top = s-top
+var-soundness (lc-pop dv) = s-pop (var-soundness dv) 
+
+soundness : ∀{Γ t T} -> Γ ⊢ t ∶ T -> ⟦ Γ ⟧ctx ⊨ t ∶ ⟦ T ⟧t
+soundness t-zero = s-zero
+soundness (t-suc d) = s-suc (soundness d)
+soundness (t-var d) = s-var (var-soundness d)
+soundness (t-lam d) = s-lam (soundness d)
+soundness (t-app d d₁) = s-app (soundness d) (soundness d₁)
+soundness (t-rec d d₁ d₂) = s-rec (soundness d) (soundness d₁) (soundness d₂)
+
