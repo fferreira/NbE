@@ -225,19 +225,30 @@ s-suc d ρ dρ with d ρ dρ
 s-suc d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
 
 s-lam : ∀{Γ t S T} -> (Γ ∷̂ S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⇒ T)
-s-lam d ρ dρ = {!!}
+s-lam d ρ dρ = ƛ _ ρ , (lem0 d dρ , e-lam)
+  where
+    lem0 : ∀ {Γ S T ρ t} -> (Γ ∷̂ S) ⊨ t ∶ T -> ρ ∈ Γ -> (ƛ t ρ) ∈ (S ⇒ T)
+    lem0 d dρ a da with d _ (cons dρ da)
+    ... | b , B , dv = , (B , app-lam dv)
 
 s-var : ∀ {Γ v T} -> Γ ∋^ v ∶ T -> Γ ⊨ ▹ v ∶ T
 s-var d ρ dρ with d ρ dρ
 ... | b , B , dv = b , B , e-var dv 
 
 s-app : ∀{Γ r s S T} -> Γ ⊨ r ∶ (S ⇒ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
-s-app d1 d2 ρ dρ = {!!}
+s-app d1 d2 ρ dρ with d1 ρ dρ | d2 ρ dρ
+s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ with D₁ d₂ D₂
+s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ | d₁d₂ , D₁D₂ , dapp = 
+  d₁d₂ , (D₁D₂ , (e-app da₁ da₂ dapp))
 
 s-rec : ∀{Γ tz ts tn T} -> 
             Γ ⊨ tz ∶ T -> Γ ⊨ ts ∶ (Nat ⇒ (T ⇒ T)) -> Γ ⊨ tn ∶ Nat ->
             Γ ⊨ rec tz ts tn ∶ T
-s-rec d1 d2 d3 ρ dρ = {!!}
+s-rec d1 d2 d3 ρ dρ with d1 ρ dρ | d2 ρ dρ | d3 ρ dρ
+s-rec d1 d2 d3 ρ dρ | d₁ , D₁ , dd₁ | d₂ , D₂ , dd₂ | d₃ , D₃ , dd₃ with D₂ d₃ D₃
+s-rec d1 d2 d3 ρ dρ | d₁ , D₁ , dd₁ | d₂ , D₂ , dd₂ | d₃ , D₃ , dd₃ | p₁ , p₂ , p₃ =
+  {!!} , ({!!} , (e-rec dd₁ dd₂ dd₃ {!!})) -- TODO we need a lemma to compute the recursion
+                                           -- type rec_,_,_↘_ instead of D₂ d₃ D₃
 
 s-top : ∀{Γ T} -> (Γ ∷̂ T) ∋^ zero ∶ T
 s-top ._ (cons _ t) = , (t , le-top)
