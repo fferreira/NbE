@@ -105,10 +105,12 @@ mutual
       ⟦ s ⟧ ρ ↘ a ->
       ⟦ σ , s ⟧s ρ ↘ (ρ' , a)
 
-  data rec_,_,_↘_ : D -> D -> D -> D -> Set where
-    r-zero : ∀{dz ds} ->
+  data rec_,_,_↘_ (dz ds : D) : D -> D -> Set where
+    r-zero :
       rec dz , ds , zero ↘ dz
-    r-suc  : ∀{dz ds dn a f b} ->
+    r-neu : ∀{e} ->
+      rec dz , ds , ne e ↘ ne (rec dz ds e)
+    r-suc  : ∀{dn a f b} ->
       rec dz , ds , dn ↘ a ->
       ds · dn ↘ f ->
       f · a ↘ b -> 
@@ -139,8 +141,6 @@ mutual
       Rne n e u ->
       Rne n (rec dz ds e) (rec vz vs u) 
 
-
-
 -- candidate spaces
 
 open import Data.Product
@@ -157,7 +157,10 @@ a ∈ P = P a
 data Nat : D -> Set where
   zero : zero ∈ Nat
   suc : ∀ {d} -> d ∈ Nat -> suc d ∈ Nat
-  ne : ∀ {e} -> e ∈ ⊥ -> (ne e) ∈ Nat
+  -- If we use only closed environments this is not really
+  -- necessary. Check SystemT-TA-Neu.agda for details on how to do
+  -- this.
+  -- ne : ∀ {e} -> e ∈ ⊥ -> (ne e) ∈ Nat
 
 -- semantic typing
 
@@ -241,14 +244,31 @@ s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ with D₁ d₂ D�
 s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ | d₁d₂ , D₁D₂ , dapp = 
   d₁d₂ , (D₁D₂ , (e-app da₁ da₂ dapp))
 
+rec'_,_,_∈_ : D -> D -> D -> Tp -> Set
+rec' dz , ds , dn ∈ T = ∃ (λ b → b ∈ T × rec dz , ds , dn ↘ b) 
+
+lem1 : ∀ {dz ds n T} 
+ -> n ∈ Nat
+ -> ds ∈ (Nat ⇒ (T ⇒ T))
+ -> rec' dz , ds , n ∈ T
+ -> rec' dz , ds , suc n ∈ T
+lem1 Dn Ds (r , (Dr , Ddr)) with Ds _ Dn
+... | (f , (Df , Ddf)) with Df _ Dr
+... | (b , (Db , Ddb)) = , (Db , r-suc Ddr Ddf Ddb)
+
+lem0 : ∀ {dz ds n T} ->  dz ∈ T -> ds ∈ (Nat ⇒ (T ⇒ T))
+ -> n ∈ Nat
+ -> rec' dz , ds , n ∈ T
+lem0 Dz Ds zero = , (Dz , r-zero)
+lem0 Dz Ds (suc x) = lem1 x Ds (lem0 Dz Ds x)
+--lem0 Dz Ds (ne x) = , ({!!} , r-neu)
+
 s-rec : ∀{Γ tz ts tn T} -> 
             Γ ⊨ tz ∶ T -> Γ ⊨ ts ∶ (Nat ⇒ (T ⇒ T)) -> Γ ⊨ tn ∶ Nat ->
             Γ ⊨ rec tz ts tn ∶ T
-s-rec d1 d2 d3 ρ dρ with d1 ρ dρ | d2 ρ dρ | d3 ρ dρ
-s-rec d1 d2 d3 ρ dρ | d₁ , D₁ , dd₁ | d₂ , D₂ , dd₂ | d₃ , D₃ , dd₃ with D₂ d₃ D₃
-s-rec d1 d2 d3 ρ dρ | d₁ , D₁ , dd₁ | d₂ , D₂ , dd₂ | d₃ , D₃ , dd₃ | p₁ , p₂ , p₃ =
-  {!!} , ({!!} , (e-rec dd₁ dd₂ dd₃ {!!})) -- TODO we need a lemma to compute the recursion
-                                           -- type rec_,_,_↘_ instead of D₂ d₃ D₃
+s-rec dz ds dn ρ dρ with dz ρ dρ | ds ρ dρ | dn ρ dρ
+s-rec dz ds dn ρ dρ | dz' , Dz , ddz | ds' , Ds , dds | dn' , Dn , ddn with lem0 Dz Ds Dn
+... | db , Db , ddb = , (Db , e-rec ddz dds ddn ddb)
 
 s-top : ∀{Γ T} -> (Γ ∷̂ T) ∋^ zero ∶ T
 s-top ._ (cons _ t) = , (t , le-top)
@@ -278,4 +298,9 @@ soundness (t-var d) = s-var (var-soundness d)
 soundness (t-lam d) = s-lam (soundness d)
 soundness (t-app d d₁) = s-app (soundness d) (soundness d₁)
 soundness (t-rec d d₁ d₂) = s-rec (soundness d) (soundness d₁) (soundness d₂)
+
+-- Closed terms evaluate to a value
+corollary : ∀ {t T} -> ∅ ⊢ t ∶ T -> ∃ (λ b -> ⟦ t ⟧ nil ↘ b)
+corollary d with soundness d nil nil
+... | b , (_ , db) = b , db
 
