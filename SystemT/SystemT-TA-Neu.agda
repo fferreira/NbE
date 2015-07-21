@@ -25,19 +25,19 @@ mutual
 
 mutual
   data nf : Set where
-    ƛ : nf -> nf 
+    ƛ : nf -> nf
     ne : neu -> nf
     zero : nf
     suc : nf -> nf
 
   data neu : Set where
-    ▹ : ℕ -> neu 
+    ▹ : ℕ -> neu
     _·_ : neu -> nf -> neu
     rec : (vz vs : nf) -> (u : neu) -> neu
 
 -- sematics
 
-mutual 
+mutual
   data D : Set where
     ƛ : exp -> env -> D
     ne : Dne -> D
@@ -67,9 +67,9 @@ mutual
     app-neu : ∀{e d} -> (ne e) · d ↘ ne (e · d)
 
   data ⟦_⟧_↘_ : exp -> env -> D -> Set where
-    e-var : ∀{v ρ i} -> 
+    e-var : ∀{v ρ i} ->
       ρ ∋^ v ↘ i -> ⟦ ▹ v ⟧ ρ ↘ i
-    e-lam : ∀{t ρ} -> 
+    e-lam : ∀{t ρ} ->
       ⟦ ƛ t ⟧ ρ ↘ ƛ t ρ
     e-app : ∀{r s ρ a f b} ->
       ⟦ r ⟧ ρ ↘ f -> ⟦ s ⟧ ρ ↘ a ->  f · a ↘ b ->
@@ -83,15 +83,15 @@ mutual
       ⟦ tz ⟧ ρ ↘ dz ->
       ⟦ ts ⟧ ρ ↘ ds ->
       ⟦ tn ⟧ ρ ↘ dn ->
-      rec dz , ds , dn ↘ d -> 
+      rec dz , ds , dn ↘ d ->
       ⟦ rec tz ts tn ⟧ ρ ↘ d
     e-sub : ∀{t σ ρ ρ' a} ->
       ⟦ σ ⟧s ρ ↘ ρ' ->
-      ⟦ t ⟧ ρ' ↘ a -> 
+      ⟦ t ⟧ ρ' ↘ a ->
       ⟦ t [ σ ] ⟧ ρ ↘ a
 
   data ⟦_⟧s_↘_ : subst -> env -> env -> Set where
-    e-shift : ∀{ρ a} -> 
+    e-shift : ∀{ρ a} ->
       ⟦ ↑ ⟧s (ρ , a) ↘ ρ
     e-id : ∀{ρ} ->
       ⟦ id ⟧s ρ ↘ ρ
@@ -99,7 +99,7 @@ mutual
       ⟦ τ ⟧s ρ ↘ ρ' ->
       ⟦ σ ⟧s ρ' ↘ ρ'' ->
       ⟦ σ ∘ τ ⟧s ρ ↘ ρ''
-    e-ext : ∀ {σ ρ ρ' s a} ->
+    e-ext : ∀ {σ ρ ρ' s a} -> -- ext stands for substitution extension
       ⟦ σ ⟧s ρ ↘ ρ' ->
       ⟦ s ⟧ ρ ↘ a ->
       ⟦ σ , s ⟧s ρ ↘ (ρ' , a)
@@ -112,7 +112,7 @@ mutual
     r-suc  : ∀{dn a f b} ->
       rec dz , ds , dn ↘ a ->
       ds · dn ↘ f ->
-      f · a ↘ b -> 
+      f · a ↘ b ->
       rec dz , ds , suc dn ↘ b
 
 -- read-back relations
@@ -130,7 +130,7 @@ mutual
 
   data Rne (n : ℕ) : Dne -> neu -> Set where
     r-app : ∀{e d u v} ->
-      Rne n e u -> Rnf n d v -> 
+      Rne n e u -> Rnf n d v ->
       Rne n (e · d) (u · v)
     r-var : ∀{k} ->
       Rne n (▹ k) (▹ (n ∸ (k + 1))) -- this is probably wrong
@@ -138,7 +138,7 @@ mutual
       Rnf n dz vz ->
       Rnf n ds vs ->
       Rne n e u ->
-      Rne n (rec dz ds e) (rec vz vs u) 
+      Rne n (rec dz ds e) (rec vz vs u)
 
 -- candidate spaces
 
@@ -161,7 +161,7 @@ _⊂_ : Tp -> Tp -> Set
 T ⊂ S = ∀ x → x ∈ T → x ∈ S
 
 Cand : Tp -> Set
-Cand A = (⊥ ⊂ A) × (A ⊂ ⊤) 
+Cand A = (⊥ ⊂ A) × (A ⊂ ⊤)
 
 data Nat : D -> Set where
   zero : zero ∈ Nat
@@ -171,7 +171,7 @@ data Nat : D -> Set where
 -- semantic typing
 
 _⇒_ : Tp -> Tp -> Tp
-(A ⇒ B) f = ∀ a -> a ∈ A -> ∃ (λ b -> b ∈ B × f · a ↘ b) 
+(A ⇒ B) f = ∀ a -> a ∈ A -> ∃ (λ b -> b ∈ B × f · a ↘ b)
 
 ⟦_⟧t : tp -> (D -> Set)
 ⟦ nat ⟧t = Nat
@@ -205,6 +205,9 @@ Ctx = env -> Set
 ⟦_⟧_∈v_ : ℕ -> env -> Tp -> Set
 ⟦ v ⟧ ρ ∈v B = ∃ (λ b → b ∈ B × ρ ∋^ v ↘ b)
 
+⟦_⟧_∈s_ : subst -> env -> Ctx -> Set
+⟦ σ ⟧ ρ ∈s Δ = ∃ (λ b → b ∈ Δ × ⟦ σ ⟧s ρ ↘ b)
+
 -- In Abel's habilitation thesis the semantic typing is presentd as
 -- relating syntactic contexts, expressions and syntactic types. Here,
 -- as per Andrew's suggestion, we have that semantic types relates
@@ -213,6 +216,10 @@ Ctx = env -> Set
 
 _⊨_∶_ : Ctx -> exp -> Tp -> Set
 Γ ⊨ t ∶ T = ∀ ρ → ρ ∈ Γ → ⟦ t ⟧ ρ ∈ T
+
+-- semantic typing for substitutions
+_⊨s_∶_ : Ctx -> subst -> Ctx -> Set
+Γ ⊨s σ ∶ Δ = ∀ ρ → ρ ∈ Γ → ⟦ σ ⟧ ρ ∈s Γ
 
 -- _⊨rec_,_,_∶_ : Ctx -> (tz ts tn : exp) -> Tp -> Set
 -- Γ ⊨rec tz , ts , tn ∶ T = ∀ ρ -> ρ ∈ Γ -> ⟦ (rec tz ts tn) ⟧ ρ ∈ T
@@ -228,7 +235,7 @@ s-zero : ∀{Γ} -> Γ ⊨ zero ∶ Nat
 s-zero Γ ρ = zero , zero , e-zero
 
 s-suc : ∀{Γ t} -> Γ ⊨ t ∶ Nat -> Γ ⊨ suc t ∶ Nat
-s-suc d ρ dρ with d ρ dρ 
+s-suc d ρ dρ with d ρ dρ
 s-suc d ρ dρ | n , N , e-n = (suc n) , (suc N , e-suc e-n)
 
 s-lam : ∀{Γ t S T} -> (Γ ∷̂ S) ⊨ t ∶ T -> Γ ⊨ ƛ t ∶ (S ⇒ T)
@@ -240,18 +247,33 @@ s-lam d ρ dρ = ƛ _ ρ , (lem0 d dρ , e-lam)
 
 s-var : ∀ {Γ v T} -> Γ ∋^ v ∶ T -> Γ ⊨ ▹ v ∶ T
 s-var d ρ dρ with d ρ dρ
-... | b , B , dv = b , B , e-var dv 
+... | b , B , dv = b , B , e-var dv
 
 s-app : ∀{Γ r s S T} -> Γ ⊨ r ∶ (S ⇒ T) -> Γ ⊨ s ∶ S -> Γ ⊨ r · s ∶ T
 s-app d1 d2 ρ dρ with d1 ρ dρ | d2 ρ dρ
 s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ with D₁ d₂ D₂
-s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ | d₁d₂ , D₁D₂ , dapp = 
+s-app d1 d2 ρ dρ | d₁ , D₁ , da₁ | d₂ , D₂ , da₂ | d₁d₂ , D₁D₂ , dapp =
   d₁d₂ , (D₁D₂ , (e-app da₁ da₂ dapp))
 
-rec'_,_,_∈_ : D -> D -> D -> Tp -> Set
-rec' dz , ds , dn ∈ T = ∃ (λ b → b ∈ T × rec dz , ds , dn ↘ b) 
+s-shift : ∀{Γ S} -> (Γ ∷̂ S) ⊨s ↑ ∶ Γ
+s-shift = λ ρ x → {!!}
 
-lem1 : ∀ {dz ds n T} 
+s-id : ∀{Γ} -> Γ ⊨s id ∶ Γ
+s-id ρ dρ = ρ , dρ , e-id
+
+s-comp : ∀{Γ₁ Γ₂ Γ₃ σ τ} -> Γ₁ ⊨s τ ∶ Γ₂ -> Γ₂ ⊨s σ ∶ Γ₃ -> Γ₁ ⊨s σ ∘ τ ∶ Γ₃
+s-comp d1 d2 = {!!}
+
+s-ext : ∀{Γ Δ σ s S} -> Γ ⊨s σ ∶ Δ -> Γ ⊨ s ∶ S -> Γ ⊨s (σ , s) ∶ (Δ ∷̂ S)
+s-ext = {!!}
+
+s-sub : ∀{Γ Δ σ t T} -> Γ ⊨s σ ∶ Δ -> Δ ⊨ t ∶ T -> Γ ⊨ t [ σ ] ∶ T
+s-sub = {!!}
+
+rec'_,_,_∈_ : D -> D -> D -> Tp -> Set
+rec' dz , ds , dn ∈ T = ∃ (λ b → b ∈ T × rec dz , ds , dn ↘ b)
+
+lem1 : ∀ {dz ds n T}
  -> n ∈ Nat
  -> ds ∈ (Nat ⇒ (T ⇒ T))
  -> rec' dz , ds , n ∈ T
@@ -262,7 +284,7 @@ lem1 Dn Ds (r , (Dr , Ddr)) with Ds _ Dn
 
 
 ⊥⊂A⇒B : ∀ {A B} -> Cand A -> Cand B -> ⊥ ⊂ (A ⇒ B)
-⊥⊂A⇒B (⊥⊂A , A⊂⊤) (⊥⊂B , B⊂⊤) ._ (inj e) a a∈A = 
+⊥⊂A⇒B (⊥⊂A , A⊂⊤) (⊥⊂B , B⊂⊤) ._ (inj e) a a∈A =
   , (⊥⊂B (ne (_ · a)) (inj (λ n → , (r-app (proj₂ (e n)) (proj₂ (A⊂⊤ a a∈A n))))) , app-neu)
 
 A⇒B⊂⊤ : ∀ {A B} -> Cand A -> Cand B -> (A ⇒ B) ⊂ ⊤
@@ -281,7 +303,7 @@ Cand-Nat = (λ x → ne) , Nat⊂⊤
     Nat⊂⊤ : ∀ x → Nat x → ∀ n → Σ nf (Rnf n x)
     Nat⊂⊤ .zero zero n = zero , r-zero
     Nat⊂⊤ ._ (suc x) n = , (r-suc (proj₂ (Nat⊂⊤ _ x n)))
-    Nat⊂⊤ ._ (ne (inj x)) n = , (r-neu (proj₂ (x n))) 
+    Nat⊂⊤ ._ (ne (inj x)) n = , (r-neu (proj₂ (x n)))
 
 Cand' : ∀ {T} -> Cand T -> (Nat ⇒ (T ⇒ T)) ⊂ ⊤
 Cand' d = A⇒B⊂⊤ Cand-Nat (Cand⇒ d d)
@@ -291,9 +313,9 @@ lem0 : ∀ {dz ds n T} -> Cand T ->  dz ∈ T -> ds ∈ (Nat ⇒ (T ⇒ T))
  -> rec' dz , ds , n ∈ T
 lem0 dT Dz Ds zero = , (Dz , r-zero)
 lem0 dT Dz Ds (suc x) = lem1 x Ds (lem0 dT Dz Ds x)
-lem0 (dT1 , dT2) Dz Ds (ne (inj x)) = 
+lem0 (dT1 , dT2) Dz Ds (ne (inj x)) =
   , (dT1 _ (inj (λ n → , r-rec (proj₂ (dT2 _ Dz n))
-                                (proj₂ (Cand' (dT1 , dT2) _ Ds n)) 
+                                (proj₂ (Cand' (dT1 , dT2) _ Ds n))
                                 (proj₂ (x n)))) , r-neu)
 
 s-rec : ∀{Γ tz ts tn T} -> Cand T ->
@@ -316,7 +338,7 @@ data _⊢_∶_ (Γ : ctx) : exp -> tp -> Set where
   t-var  : ∀{v T} -> Γ ∋ v ∶ T -> Γ ⊢ ▹ v ∶ T
   t-lam  : ∀{S T t} -> (Γ :: S) ⊢ t ∶ T -> Γ ⊢ ƛ t ∶ (S ⟼ T)
   t-app  : ∀{S T r s} -> Γ ⊢ r ∶ (S ⟼ T) -> Γ ⊢ s ∶ S -> Γ ⊢ r · s ∶ T
-  t-rec  : ∀{T tz ts tn} -> 
+  t-rec  : ∀{T tz ts tn} ->
            Γ ⊢ tz ∶ T -> Γ ⊢ ts ∶ (nat ⟼ (T ⟼ T)) -> Γ ⊢ tn ∶ nat ->
            Γ ⊢ rec tz ts tn ∶ T
 
@@ -326,7 +348,7 @@ lem3 (T ⟼ T₁) = Cand⇒ (lem3 T) (lem3 T₁)
 
 var-soundness : ∀{Γ v T} -> Γ ∋ v ∶ T -> (⟦ Γ ⟧ctx) ∋^ v ∶ ⟦ T ⟧t
 var-soundness lc-top = s-top
-var-soundness (lc-pop dv) = s-pop (var-soundness dv) 
+var-soundness (lc-pop dv) = s-pop (var-soundness dv)
 
 soundness : ∀{Γ t T} -> Γ ⊢ t ∶ T -> ⟦ Γ ⟧ctx ⊨ t ∶ ⟦ T ⟧t
 soundness t-zero = s-zero
@@ -336,10 +358,9 @@ soundness (t-lam d) = s-lam (soundness d)
 soundness (t-app d d₁) = s-app (soundness d) (soundness d₁)
 soundness (t-rec {T} d d₁ d₂) = s-rec (lem3 T) (soundness d) (soundness d₁) (soundness d₂)
 
-corollary : ∀ {t T} -> ∅ ⊢ t ∶ T -> ∃ (λ b -> ⟦ t ⟧ nil ↘ b)
-corollary d with soundness d nil nil
+corollary : ∀ {Γ t T} -> Γ ⊢ t ∶ T -> ∃ (λ b -> ⟦ t ⟧ {!!} ↘ b)
+corollary d with soundness d nil {!nil!}
 ... | b , (_ , db) = b , db
 
 --- TODO : implement the part with the initial environment (kinda like
---- an identity env) called ρ_n by Andreas and the explicit
---- substitution part
+--- an identity env) called ρ_n by Andreas
