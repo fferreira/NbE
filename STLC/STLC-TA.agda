@@ -1,4 +1,4 @@
-module STLC where
+module STLC-TA where
   open import Data.Nat
 
   -- signature types
@@ -102,7 +102,7 @@ module STLC where
 
   -- read-back relations
 
-  mutuals
+  mutual
     data Rnf (n : ℕ) : D -> nf -> Set where
       r-lam : ∀{t ρ b v} ->
         ⟦ t ⟧ ρ , (ne (▹ n)) ↘ b -> Rnf (suc n) b v ->
